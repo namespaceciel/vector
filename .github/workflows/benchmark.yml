@@ -1,0 +1,25 @@
+name: benchmark
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  job:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: benchmark against gcc
+        run: |
+            make benchmark COMPILER_PATH="g++"
+
+      - name: cleanup
+        run: |
+            make clean
+
+      - name: benchmark against clang
+        run: |
+            make benchmark COMPILER_PATH="clang++" COMPILER_FLAGS="-stdlib=libc++"

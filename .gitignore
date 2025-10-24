@@ -1,0 +1,11 @@
+.idea
+.DS_Store
+*/.DS_Store
+cmake-build-*
+build
+.vscode
+portable_headers
+.cache
+compile_commands.json
+third_party
+CMakeUserPresets.json

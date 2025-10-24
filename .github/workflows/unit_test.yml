@@ -1,0 +1,25 @@
+name: unit_test
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  job:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: test against gcc
+        run: |
+            make test COMPILER_PATH="g++"
+
+      - name: cleanup
+        run: |
+            make clean
+
+      - name: test against clang
+        run: |
+            make test COMPILER_PATH="clang++" COMPILER_FLAGS="-stdlib=libc++"
