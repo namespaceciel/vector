@@ -391,21 +391,6 @@ class DeathTest {
   std::string stderr_from_child_;
 };
 
-#ifdef _LIBCPP_VERSION
-void std::__libcpp_verbose_abort(char const* format, ...) noexcept {
-  va_list args;
-  va_start(args, format);
-
-  std::fprintf(stderr, "%s\n", Marker);
-  std::vfprintf(stderr, format, args);
-  std::fprintf(stderr, "%s", Marker);
-
-  va_end(args);
-
-  StopChildProcess(DeathCause::VerboseAbort);
-}
-#endif  // _LIBCPP_VERSION
-
 template <std::size_t N, class Func>
 bool ExpectDeath(const std::array<DeathCause, N>& expected_causes, const char* stmt, Func&& func,
                  const Matcher& matcher) {
