@@ -18,6 +18,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: install libc++ for clang
+        if: matrix.compiler.name == 'clang'
+        run: |
+          sudo apt update
+          sudo apt install -y libc++-dev
+
       - name: test against ${{ matrix.compiler.name }}
         run: |
+          ${{ matrix.compiler.path }} --version
           make test COMPILER_PATH="${{ matrix.compiler.path }}" COMPILER_FLAGS="${{ matrix.compiler.flags }}"
