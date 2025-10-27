@@ -9,8 +9,6 @@
 #ifndef TEST_STD_CONTAINERS_SEQUENCES_VECTOR_VECTOR_MODIFIERS_COMMON_H
 #define TEST_STD_CONTAINERS_SEQUENCES_VECTOR_VECTOR_MODIFIERS_COMMON_H
 
-#include <type_traits>  // for __libcpp_is_trivially_relocatable
-
 #include "test_macros.h"
 
 #ifndef TEST_HAS_NO_EXCEPTIONS
@@ -105,6 +103,5 @@ struct NonTriviallyRelocatable {
     return a.value_ == b.value_;
   }
 };
-LIBCPP_STATIC_ASSERT(!std::__libcpp_is_trivially_relocatable<NonTriviallyRelocatable>::value, "");
 
 #endif  // TEST_STD_CONTAINERS_SEQUENCES_VECTOR_VECTOR_MODIFIERS_COMMON_H

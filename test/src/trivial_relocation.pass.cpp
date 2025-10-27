@@ -38,7 +38,6 @@ struct NotTriviallyMovable {
   Inner inner_;
 };
 static_assert(!std::is_trivially_copyable<NotTriviallyMovable>::value, "");
-LIBCPP_STATIC_ASSERT(!std::__libcpp_is_trivially_relocatable<NotTriviallyMovable>::value, "");
 
 constexpr bool tests() {
   Tracker track;

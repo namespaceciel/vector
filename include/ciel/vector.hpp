@@ -230,15 +230,21 @@ class range_destroyer {
 
 // https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p1144r10.html
 
-template <class T>
-struct is_trivially_relocatable : std::disjunction<std::is_trivially_copyable<T>,
-#ifdef _LIBCPP___TYPE_TRAITS_IS_TRIVIALLY_RELOCATABLE_H
-                                                   std::__libcpp_is_trivially_relocatable<T>,
-#elif __has_builtin(__is_trivially_relocatable)
-                                                   std::bool_constant<__is_trivially_relocatable(T)>,
+template <class T, class = void>
+struct is_trivially_relocatable :
+#if defined(__cpp_lib_trivially_relocatable)
+    std::is_trivially_relocatable<T>
+#elif defined(_LIBCPP___TYPE_TRAITS_IS_TRIVIALLY_RELOCATABLE_H)
+    std::__libcpp_is_trivially_relocatable<T>
+#else
+    std::is_trivially_copyable<T>
 #endif
-                                                   std::false_type> {
+{
 };
+
+template <class T>
+struct is_trivially_relocatable<T, std::enable_if_t<std::is_same_v<T, typename T::ciel_trivially_relocatable>>>
+    : std::true_type {};
 
 template <class First, class Second>
 struct is_trivially_relocatable<std::pair<First, Second>>
@@ -246,6 +252,9 @@ struct is_trivially_relocatable<std::pair<First, Second>>
 
 template <class... Types>
 struct is_trivially_relocatable<std::tuple<Types...>> : std::conjunction<is_trivially_relocatable<Types>...> {};
+
+template <class T>
+inline constexpr bool is_trivially_relocatable_v = is_trivially_relocatable<T>::value;
 
 // ==================== move_if_noexcept ====================
 
@@ -386,7 +395,7 @@ class split_buffer {
 
 struct reserve_capacity_t {};
 
-static constexpr reserve_capacity_t reserve_capacity;
+inline constexpr reserve_capacity_t reserve_capacity;
 
 // ==================== vector ====================
 
@@ -416,13 +425,15 @@ class vector {
   static constexpr bool via_trivial_destroy =
       allocator_has_trivial_destroy<allocator_type, decltype(std::to_address(std::declval<pointer>()))>::value;
 
+ public:
   static constexpr bool expand_via_memcpy =
-      is_trivially_relocatable<value_type>::value &&
+      is_trivially_relocatable_v<value_type> &&
       via_trivial_construct<decltype(ciel::move_if_noexcept(*std::declval<pointer>()))> && via_trivial_destroy;
-  static constexpr bool move_via_memmove = is_trivially_relocatable<value_type>::value &&
+  static constexpr bool move_via_memmove = is_trivially_relocatable_v<value_type> &&
                                            via_trivial_construct<decltype(std::move(*std::declval<pointer>()))> &&
                                            via_trivial_destroy;
 
+ private:
   pointer begin_{nullptr};
   pointer end_{nullptr};
   pointer end_cap_{nullptr};
