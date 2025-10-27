@@ -36,29 +36,10 @@
 #define __has_include(...) 0
 #endif
 
-#ifdef __has_extension
-#define TEST_HAS_EXTENSION(X) __has_extension(X)
-#else
-#define TEST_HAS_EXTENSION(X) 0
-#endif
-
-#ifdef __has_warning
-#define TEST_HAS_WARNING(X) __has_warning(X)
-#else
-#define TEST_HAS_WARNING(X) 0
-#endif
-
 #ifdef __has_builtin
 #define TEST_HAS_BUILTIN(X) __has_builtin(X)
 #else
 #define TEST_HAS_BUILTIN(X) 0
-#endif
-#ifdef __is_identifier
-// '__is_identifier' returns '0' if '__x' is a reserved identifier provided by
-// the compiler and '1' otherwise.
-#define TEST_HAS_BUILTIN_IDENTIFIER(X) !__is_identifier(X)
-#else
-#define TEST_HAS_BUILTIN_IDENTIFIER(X) 0
 #endif
 
 #if defined(__EDG__)
@@ -127,20 +108,6 @@
 #define TEST_IS_CONSTANT_EVALUATED false
 #endif
 
-#define TEST_STD_AT_LEAST_20_OR_RUNTIME_EVALUATED true
-
-#if TEST_STD_VER >= 23
-#define TEST_STD_AT_LEAST_23_OR_RUNTIME_EVALUATED true
-#else
-#define TEST_STD_AT_LEAST_23_OR_RUNTIME_EVALUATED (!TEST_IS_CONSTANT_EVALUATED)
-#endif
-
-#if TEST_STD_VER >= 26
-#define TEST_STD_AT_LEAST_26_OR_RUNTIME_EVALUATED true
-#else
-#define TEST_STD_AT_LEAST_26_OR_RUNTIME_EVALUATED (!TEST_IS_CONSTANT_EVALUATED)
-#endif
-
 #if TEST_STD_VER >= 23
 #define constexpr_CXX23 constexpr
 #else
@@ -172,7 +139,6 @@
 #if TEST_HAS_FEATURE(address_sanitizer) || TEST_HAS_FEATURE(hwaddress_sanitizer) || \
     TEST_HAS_FEATURE(memory_sanitizer) || TEST_HAS_FEATURE(thread_sanitizer)
 #define TEST_HAS_SANITIZERS
-#define TEST_IS_EXECUTED_IN_A_SLOW_ENVIRONMENT
 #endif
 
 #ifdef _LIBCPP_USE_FROZEN_CXX03_HEADERS
@@ -183,30 +149,15 @@
 #define TEST_HAS_NO_ALIGNED_ALLOCATION
 #endif
 
-#define TEST_CONSTINIT constinit
-
 #define ASSERT_NOEXCEPT(...) static_assert(noexcept(__VA_ARGS__), "Operation must be noexcept")
-#define ASSERT_NOT_NOEXCEPT(...) static_assert(!noexcept(__VA_ARGS__), "Operation must NOT be noexcept")
 
 /* Macros for testing libc++ specific behavior and extensions */
 #if defined(_LIBCPP_VERSION)
 #define LIBCPP_ASSERT(...) assert(__VA_ARGS__)
 #define LIBCPP_STATIC_ASSERT(...) static_assert(__VA_ARGS__)
-#define LIBCPP_ASSERT_NOEXCEPT(...) ASSERT_NOEXCEPT(__VA_ARGS__)
-#define LIBCPP_ASSERT_NOT_NOEXCEPT(...) ASSERT_NOT_NOEXCEPT(__VA_ARGS__)
-#define LIBCPP_ONLY(...) __VA_ARGS__
 #else
 #define LIBCPP_ASSERT(...) static_assert(true, "")
 #define LIBCPP_STATIC_ASSERT(...) static_assert(true, "")
-#define LIBCPP_ASSERT_NOEXCEPT(...) static_assert(true, "")
-#define LIBCPP_ASSERT_NOT_NOEXCEPT(...) static_assert(true, "")
-#define LIBCPP_ONLY(...) static_assert(true, "")
-#endif
-
-#ifdef _LIBCPP_USE_FROZEN_CXX03_HEADERS
-#define LIBCPP_NON_FROZEN_ASSERT(...) static_assert(true, "")
-#else
-#define LIBCPP_NON_FROZEN_ASSERT(...) LIBCPP_ASSERT(__VA_ARGS__)
 #endif
 
 #if __has_cpp_attribute(nodiscard)
@@ -291,23 +242,6 @@ inline Tp const& DoNotOptimize(Tp const& value) {
 }
 #endif
 
-#if defined(__GNUC__)
-#define TEST_ALWAYS_INLINE __attribute__((always_inline))
-#define TEST_NOINLINE __attribute__((noinline))
-#elif defined(_MSC_VER)
-#define TEST_ALWAYS_INLINE __forceinline
-#define TEST_NOINLINE __declspec(noinline)
-#else
-#define TEST_ALWAYS_INLINE
-#define TEST_NOINLINE
-#endif
-
-#ifdef _WIN32
-#define TEST_NOT_WIN32(...) ((void)0)
-#else
-#define TEST_NOT_WIN32(...) __VA_ARGS__
-#endif
-
 #if defined(TEST_WINDOWS_DLL) || defined(__MVS__) || defined(_AIX)
 // Macros for waiving cases when we can't count allocations done within
 // the library implementation.
@@ -354,20 +288,6 @@ inline Tp const& DoNotOptimize(Tp const& value) {
 #define TEST_HAS_NO_WIDE_CHARACTERS
 #endif
 
-#if defined(_LIBCPP_VERSION) && !_LIBCPP_HAS_UNICODE
-#define TEST_HAS_NO_UNICODE
-#elif defined(_MSVC_EXECUTION_CHARACTER_SET) && _MSVC_EXECUTION_CHARACTER_SET != 65001
-#define TEST_HAS_NO_UNICODE
-#endif
-
-#ifdef _LIBCPP_USE_FROZEN_CXX03_HEADERS
-#ifdef _LIBCPP_HAS_OPEN_WITH_WCHAR
-#define TEST_HAS_OPEN_WITH_WCHAR
-#endif
-#elif defined(_LIBCPP_VERSION) && _LIBCPP_HAS_OPEN_WITH_WCHAR
-#define TEST_HAS_OPEN_WITH_WCHAR
-#endif
-
 #ifdef _LIBCPP_USE_FROZEN_CXX03_HEADERS
 #ifdef _LIBCPP_HAS_NO_INT128
 #define TEST_HAS_NO_INT128
@@ -376,43 +296,8 @@ inline Tp const& DoNotOptimize(Tp const& value) {
 #define TEST_HAS_NO_INT128
 #endif
 
-#if defined(_LIBCPP_VERSION) && !_LIBCPP_HAS_LOCALIZATION
-#define TEST_HAS_NO_LOCALIZATION
-#endif
-
 #if !defined(__cpp_char8_t)
 #define TEST_HAS_NO_CHAR8_T
-#endif
-
-#if defined(_LIBCPP_VERSION) && !_LIBCPP_HAS_THREADS
-#define TEST_HAS_NO_THREADS
-#endif
-
-#if defined(_LIBCPP_VERSION) && !_LIBCPP_HAS_FILESYSTEM
-#define TEST_HAS_NO_FILESYSTEM
-#endif
-
-#ifdef _LIBCPP_USE_FROZEN_CXX03_HEADERS
-#ifdef _LIBCPP_HAS_NO_C8RTOMB_MBRTOC8
-#define TEST_HAS_NO_C8RTOMB_MBRTOC8
-#endif
-#elif defined(_LIBCPP_VERSION) && !_LIBCPP_HAS_C8RTOMB_MBRTOC8
-#define TEST_HAS_NO_C8RTOMB_MBRTOC8
-#endif
-
-#if defined(_LIBCPP_VERSION) && !_LIBCPP_HAS_RANDOM_DEVICE
-#define TEST_HAS_NO_RANDOM_DEVICE
-#endif
-
-#ifdef _LIBCPP_USE_FROZEN_CXX03_HEADERS
-// This is a C++20 feature, so it's never available anyways
-#define TEST_HAS_NO_EXPERIMENTAL_TZDB
-#elif defined(_LIBCPP_VERSION) && !_LIBCPP_HAS_EXPERIMENTAL_TZDB
-#define TEST_HAS_NO_EXPERIMENTAL_TZDB
-#endif
-
-#if defined(_LIBCPP_VERSION) && !_LIBCPP_HAS_TIME_ZONE_DATABASE
-#define TEST_HAS_NO_TIME_ZONE_DATABASE
 #endif
 
 #if defined(TEST_COMPILER_CLANG)
@@ -447,52 +332,6 @@ inline Tp const& DoNotOptimize(Tp const& value) {
 #define TEST_NO_UNIQUE_ADDRESS [[no_unique_address]]
 #else
 #define TEST_NO_UNIQUE_ADDRESS
-#endif
-
-#ifdef _LIBCPP_SHORT_WCHAR
-#define TEST_SHORT_WCHAR
-#endif
-
-#ifdef _LIBCPP_ABI_MICROSOFT
-#define TEST_ABI_MICROSOFT
-#endif
-
-// This is a temporary workaround for user-defined `operator new` definitions
-// not being picked up on Apple platforms in some circumstances. This is under
-// investigation and should be short-lived.
-#ifdef __APPLE__
-#define TEST_WORKAROUND_BUG_109234844_WEAK __attribute__((weak))
-#else
-#define TEST_WORKAROUND_BUG_109234844_WEAK /* nothing */
-#endif
-
-#ifdef _AIX
-#define TEST_IF_AIX(arg_true, arg_false) arg_true
-#else
-#define TEST_IF_AIX(arg_true, arg_false) arg_false
-#endif
-
-// Clang-18 has support for deducing this, but it does not set the FTM.
-#ifdef _LIBCPP_USE_FROZEN_CXX03_HEADERS
-// This is a C++20 featue, so we don't care whether the compiler could support it
-#elif defined(_LIBCPP_VERSION) && _LIBCPP_HAS_EXPLICIT_THIS_PARAMETER
-#define TEST_HAS_EXPLICIT_THIS_PARAMETER
-#endif
-
-// Placement `operator new`/`operator new[]` are not yet constexpr in C++26
-// when using MS ABI, because they are from <vcruntime_new.h>.
-#if defined(__cpp_lib_constexpr_new) && __cpp_lib_constexpr_new >= 202406L
-#define constexpr_OPERATOR_NEW constexpr
-#else
-#define constexpr_OPERATOR_NEW
-#endif
-
-#if defined(_MSC_VER) || __SIZEOF_LONG_DOUBLE__ == __SIZEOF_DOUBLE__
-#define TEST_LONG_DOUBLE_IS_DOUBLE
-#endif
-
-#if defined(__LDBL_MANT_DIG__) && __LDBL_MANT_DIG__ == 64
-#define TEST_LONG_DOUBLE_IS_80_BIT
 #endif
 
 #endif  // SUPPORT_TEST_MACROS_HPP
