@@ -242,47 +242,6 @@ inline Tp const& DoNotOptimize(Tp const& value) {
 }
 #endif
 
-#if defined(TEST_WINDOWS_DLL) || defined(__MVS__) || defined(_AIX)
-// Macros for waiving cases when we can't count allocations done within
-// the library implementation.
-//
-// On Windows, when libc++ is built as a DLL, references to operator new/delete
-// within the DLL are bound at link time to the operator new/delete within
-// the library; replacing them in the user executable doesn't override the
-// calls within the library.
-//
-// The same goes on IBM zOS.
-// The same goes on AIX.
-#define ASSERT_WITH_LIBRARY_INTERNAL_ALLOCATIONS(...) ((void)(__VA_ARGS__))
-#define TEST_SUPPORTS_LIBRARY_INTERNAL_ALLOCATIONS 0
-#else
-#define ASSERT_WITH_LIBRARY_INTERNAL_ALLOCATIONS(...) assert(__VA_ARGS__)
-#define TEST_SUPPORTS_LIBRARY_INTERNAL_ALLOCATIONS 1
-#endif
-
-#if (defined(TEST_WINDOWS_DLL) && !defined(_MSC_VER)) || defined(__MVS__)
-// Normally, a replaced e.g. 'operator new' ends up used if the user code
-// does a call to e.g. 'operator new[]'; it's enough to replace the base
-// versions and have it override all of them.
-//
-// When the fallback operators are located within the libc++ library and we
-// can't override the calls within it (see above), this fallback mechanism
-// doesn't work either.
-//
-// On Windows, when using the MSVC vcruntime, the operator new/delete fallbacks
-// are linked separately from the libc++ library, linked statically into
-// the end user executable, and these fallbacks work even in DLL configurations.
-// In MinGW configurations when built as a DLL, and on zOS, these fallbacks
-// don't work though.
-#define ASSERT_WITH_OPERATOR_NEW_FALLBACKS(...) ((void)(__VA_ARGS__))
-#else
-#define ASSERT_WITH_OPERATOR_NEW_FALLBACKS(...) assert(__VA_ARGS__)
-#endif
-
-#ifdef _WIN32
-#define TEST_WIN_NO_FILESYSTEM_PERMS_NONE
-#endif
-
 // Support for carving out parts of the test suite, like removing wide characters, etc.
 #if defined(_LIBCPP_VERSION) && !_LIBCPP_HAS_WIDE_CHARACTERS
 #define TEST_HAS_NO_WIDE_CHARACTERS
