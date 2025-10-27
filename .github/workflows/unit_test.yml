@@ -7,19 +7,17 @@ on:
 
 jobs:
   job:
+    name: test against ${{ matrix.compiler.name }}
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        compiler:
+          - { name: "gcc", path: "g++", flags: "" }
+          - { name: "clang", path: "clang++", flags: "-stdlib=libc++" }
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: test against gcc
+      - name: test against ${{ matrix.compiler.name }}
         run: |
-            make test COMPILER_PATH="g++"
-
-      - name: cleanup
-        run: |
-            make clean
-
-      - name: test against clang
-        run: |
-            make test COMPILER_PATH="clang++" COMPILER_FLAGS="-stdlib=libc++"
+          make test COMPILER_PATH="${{ matrix.compiler.path }}" COMPILER_FLAGS="${{ matrix.compiler.flags }}"

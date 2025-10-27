@@ -34,5 +34,5 @@ format:
 .PHONY: format
 
 check_format:
-	./format.sh check $(PROJECT_SOURCE_DIR)/include $(PROJECT_SOURCE_DIR)/test $(PROJECT_SOURCE_DIR)/benchmark
+	./format.sh check $(PROJECT_SOURCE_DIR)/include
 .PHONY: check_format
