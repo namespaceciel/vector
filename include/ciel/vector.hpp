@@ -82,73 +82,6 @@ struct allocator_has_trivial_construct<std::allocator<T>, Pointer, Args...> : st
 template <class T, class Pointer>
 struct allocator_has_trivial_destroy<std::allocator<T>, Pointer> : std::true_type {};
 
-// ==================== iterator_traits ====================
-
-// is_exactly_input_iterator
-
-template <class Iter, class = void>
-struct is_exactly_input_iterator : std::false_type {};
-
-template <class Iter>
-struct is_exactly_input_iterator<Iter, std::void_t<typename std::iterator_traits<Iter>::iterator_category>>
-    : std::is_same<typename std::iterator_traits<Iter>::iterator_category, std::input_iterator_tag> {};
-
-// is_forward_iterator
-
-template <class Iter, class = void>
-struct is_forward_iterator : std::false_type {};
-
-template <class Iter>
-struct is_forward_iterator<Iter, std::void_t<typename std::iterator_traits<Iter>::iterator_category>>
-    : std::is_convertible<typename std::iterator_traits<Iter>::iterator_category, std::forward_iterator_tag> {};
-
-// is_contiguous_iterator
-
-template <class Iter, class = void>
-struct is_contiguous_iterator : std::false_type {};
-
-template <class Iter>
-struct is_contiguous_iterator<Iter, std::void_t<typename std::iterator_traits<Iter>::iterator_concept>>
-    : std::is_convertible<typename std::iterator_traits<Iter>::iterator_concept, std::contiguous_iterator_tag> {};
-
-template <class T>
-struct is_contiguous_iterator<T*> : std::true_type {};
-
-template <class T>
-struct is_contiguous_iterator<std::move_iterator<T>> : is_contiguous_iterator<T> {};
-
-// ==================== copy_n ====================
-
-// To extract the input iterator `first`
-
-template <class InputIt, class Size, class OutputIt>
-constexpr InputIt copy_n(InputIt first, Size count, OutputIt result) {
-  using T = std::iterator_traits<InputIt>::value_type;
-  using U = std::iterator_traits<OutputIt>::value_type;
-
-  if (!std::is_constant_evaluated()) {
-    if constexpr (is_contiguous_iterator<InputIt>::value && is_contiguous_iterator<OutputIt>::value &&
-                  std::is_same_v<T, U> && std::is_trivially_copy_assignable_v<T>) {
-      if constexpr (std::is_convertible_v<decltype(std::to_address(first)), const void*> &&
-                    std::is_convertible_v<decltype(std::to_address(result)), void*>) {
-        if (count != 0) {
-          // assume no overlap
-          std::memcpy(std::to_address(result), std::to_address(first), count * sizeof(T));
-        }
-        return first + count;
-      }
-    }
-  }
-
-  for (Size i = 0; i < count; ++i) {
-    *result = *first;
-    ++result;
-    ++first;
-  }
-
-  return first;
-}
-
 // ==================== uninitialized_copy ====================
 
 template <class Alloc, class InputIt, class OutputIt>
@@ -160,9 +93,8 @@ constexpr void uninitialized_copy(Alloc& alloc, InputIt first, InputIt last, Out
     constexpr bool via_trivial_construct = allocator_has_trivial_construct<
         Alloc, decltype(std::to_address(std::declval<typename std::allocator_traits<Alloc>::pointer>())),
         decltype(*std::declval<InputIt>())>::value;
-    if constexpr (via_trivial_construct && is_contiguous_iterator<InputIt>::value &&
-                  is_contiguous_iterator<OutputIt>::value && std::is_same_v<T, U> &&
-                  std::is_trivially_copy_constructible_v<T>) {
+    if constexpr (via_trivial_construct && std::contiguous_iterator<InputIt> && std::contiguous_iterator<OutputIt> &&
+                  std::is_same_v<T, U> && std::is_trivially_copy_constructible_v<T>) {
       if constexpr (std::is_convertible_v<decltype(std::to_address(first)), const void*> &&
                     std::is_convertible_v<decltype(std::to_address(result)), void*>) {
         const size_t count = std::distance(first, last);
@@ -320,7 +252,7 @@ class split_buffer {
     }
   }
 
-  template <class Iter>
+  template <std::forward_iterator Iter>
   constexpr void construct_at_end(Iter first, Iter last) {
     ciel::uninitialized_copy(allocator_ref_, first, last, end_);
   }
@@ -524,7 +456,7 @@ class vector {
     }
   }
 
-  template <class Iter>
+  template <std::forward_iterator Iter>
   constexpr void construct_at_end(Iter first, Iter last) {
     ciel::uninitialized_copy(alloc_, first, last, end_);
   }
@@ -677,16 +609,14 @@ class vector {
     }
   }
 
-  template <class Iter>
-    requires is_exactly_input_iterator<Iter>::value
+  template <std::input_iterator Iter>
   constexpr vector(Iter first, Iter last, const allocator_type& alloc = allocator_type()) : vector(alloc) {
     for (; first != last; ++first) {
       emplace_back(*first);
     }
   }
 
-  template <class Iter>
-    requires is_forward_iterator<Iter>::value
+  template <std::forward_iterator Iter>
   constexpr vector(Iter first, Iter last, const allocator_type& alloc = allocator_type()) : vector(alloc) {
     if (const auto count = std::distance(first, last); count > 0) [[likely]] {
       init(count);
@@ -696,7 +626,7 @@ class vector {
 
   constexpr vector(const vector& other)
       : vector(other.begin(), other.end(),
-               std::allocator_traits<allocator_type>::select_on_container_copy_construction(other.get_allocator())) {}
+               std::allocator_traits<allocator_type>::select_on_container_copy_construction(other.alloc_)) {}
 
   constexpr vector(vector&& other) noexcept
       : begin_(std::exchange(other.begin_, nullptr)),
@@ -708,14 +638,22 @@ class vector {
       : vector(other.begin(), other.end(), alloc) {}
 
   constexpr vector(vector&& other, const std::type_identity_t<Allocator>& alloc) : vector(alloc) {
-    if (alloc_ == other.get_allocator()) {
+    if (alloc_ == other.alloc_) {
       begin_ = std::exchange(other.begin_, nullptr);
       end_ = std::exchange(other.end_, nullptr);
       end_cap_ = std::exchange(other.end_cap_, nullptr);
 
     } else if (other.size() > 0) {
       init(other.size());
-      construct_at_end(std::make_move_iterator(other.begin()), std::make_move_iterator(other.end()));
+
+      if constexpr (std::is_trivially_copy_constructible_v<value_type> &&
+                    std::is_trivially_move_constructible_v<value_type>) {
+        // std::move_iterator is not contiguous_iterator
+        construct_at_end(other.begin(), other.end());
+
+      } else {
+        construct_at_end(std::make_move_iterator(other.begin()), std::make_move_iterator(other.end()));
+      }
     }
   }
 
@@ -743,7 +681,7 @@ class vector {
       alloc_ = other.alloc_;
     }
 
-    assign(other.begin(), other.end());
+    assign(other.begin(), other.end(), other.size());
 
     return *this;
   }
@@ -759,8 +697,12 @@ class vector {
         alloc_ == other.alloc_) {
       swap(other);
 
+    } else if constexpr (std::is_trivially_copyable_v<value_type>) {
+      // std::move_iterator is not contiguous_iterator
+      assign(other.begin(), other.end(), other.size());
+
     } else {
-      assign(std::make_move_iterator(other.begin()), std::make_move_iterator(other.end()));
+      assign(std::make_move_iterator(other.begin()), std::make_move_iterator(other.end()), other.size());
     }
 
     return *this;
@@ -792,20 +734,23 @@ class vector {
   }
 
  private:
-  template <class Iter>
+  template <std::forward_iterator Iter>
   constexpr void assign(Iter first, Iter last, const size_type count) {
+    assert(std::distance(first, last) == count);
+
     if (capacity() < count) {
       reset(count);
       construct_at_end(first, last);
       return;
     }
 
-    if (size() > count) {
-      end_ = destroy(begin_ + count, end_);
-      ciel::copy_n(first, count, begin_);  // count == size()
+    if (const auto sz = size(); sz > count) {
+      auto mid = std::copy(first, last, begin_);
+      end_ = destroy(mid, end_);
 
-    } else {
-      Iter mid = ciel::copy_n(first, size(), begin_);
+    } else if (sz < count) {
+      auto mid = std::next(first, size());
+      std::copy(first, mid, begin_);
       construct_at_end(mid, last);
     }
   }
@@ -816,16 +761,14 @@ class vector {
     return *this;
   }
 
-  template <class Iter>
-    requires is_forward_iterator<Iter>::value
+  template <std::forward_iterator Iter>
   constexpr void assign(Iter first, Iter last) {
     const size_type count = std::distance(first, last);
 
     assign(first, last, count);
   }
 
-  template <class Iter>
-    requires is_exactly_input_iterator<Iter>::value
+  template <std::input_iterator Iter>
   constexpr void assign(Iter first, Iter last) {
     pointer p = begin_;
     for (; first != last && p != end_; ++first) {
@@ -1078,7 +1021,7 @@ class vector {
   }
 
  private:
-  template <class Iter>
+  template <std::forward_iterator Iter>
   constexpr iterator insert(const_iterator p, Iter first, Iter last, size_type count) {
     const pointer pos = begin_ + (p - begin());
 
@@ -1092,15 +1035,13 @@ class vector {
   }
 
  public:
-  template <class Iter>
-    requires is_forward_iterator<Iter>::value
+  template <std::forward_iterator Iter>
   constexpr iterator insert(const_iterator pos, Iter first, Iter last) {
     return insert(pos, first, last, std::distance(first, last));
   }
 
   // Construct them all at the end at first, then rotate them to the right place.
-  template <class Iter>
-    requires is_exactly_input_iterator<Iter>::value
+  template <std::input_iterator Iter>
   constexpr iterator insert(const_iterator p, Iter first, Iter last) {
     const pointer pos = begin_ + (p - begin());
 

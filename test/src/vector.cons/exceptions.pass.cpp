@@ -65,15 +65,15 @@ int main(int, char**) {
   check_new_delete_called();
 
   try {  // Throw in vector(InputIterator, InputIterator) from input iterator
-    ciel::vector<int> vec((throwing_iterator<int, std::input_iterator_tag>()),
-                          throwing_iterator<int, std::input_iterator_tag>(2));
+    ciel::vector<int> vec((throwing_iterator<std::input_iterator_tag>()),
+                          throwing_iterator<std::input_iterator_tag>(2));
   } catch (int) {
   }
   check_new_delete_called();
 
   try {  // Throw in vector(InputIterator, InputIterator) from forward iterator
-    ciel::vector<int> vec((throwing_iterator<int, std::forward_iterator_tag>()),
-                          throwing_iterator<int, std::forward_iterator_tag>(2));
+    ciel::vector<int> vec((throwing_iterator<std::forward_iterator_tag>()),
+                          throwing_iterator<std::forward_iterator_tag>(2));
   } catch (int) {
   }
   check_new_delete_called();
@@ -87,16 +87,16 @@ int main(int, char**) {
 
   try {  // Throw in vector(InputIterator, InputIterator, const allocator_type&) from input iterator
     std::allocator<int> alloc;
-    ciel::vector<int> vec(throwing_iterator<int, std::input_iterator_tag>(),
-                          throwing_iterator<int, std::input_iterator_tag>(2), alloc);
+    ciel::vector<int> vec(throwing_iterator<std::input_iterator_tag>(), throwing_iterator<std::input_iterator_tag>(2),
+                          alloc);
   } catch (int) {
   }
   check_new_delete_called();
 
   try {  // Throw in vector(InputIterator, InputIterator, const allocator_type&) from forward iterator
     std::allocator<int> alloc;
-    ciel::vector<int> vec(throwing_iterator<int, std::forward_iterator_tag>(),
-                          throwing_iterator<int, std::forward_iterator_tag>(2), alloc);
+    ciel::vector<int> vec(throwing_iterator<std::forward_iterator_tag>(),
+                          throwing_iterator<std::forward_iterator_tag>(2), alloc);
   } catch (int) {
   }
   check_new_delete_called();

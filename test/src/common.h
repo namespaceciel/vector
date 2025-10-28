@@ -160,22 +160,21 @@ struct throwing_allocator {
   }
 };
 
-template <class T, class IterCat>
+template <class IterCat>
 struct throwing_iterator {
   using iterator_category = IterCat;
   using difference_type = std::ptrdiff_t;
-  using value_type = T;
-  using reference = T&;
-  using pointer = T*;
+  using value_type = int;
+  using reference = int&;
+  using pointer = int*;
 
   int i_;
-  T v_;
 
-  explicit throwing_iterator(int i = 0, const T& v = T()) : i_(i), v_(v) {}
+  explicit throwing_iterator(int i = 0) : i_(i) {}
 
-  reference operator*() {
+  int operator*() const {
     if (i_ == 1) throw 1;
-    return v_;
+    return i_;
   }
 
   friend bool operator==(const throwing_iterator& lhs, const throwing_iterator& rhs) { return lhs.i_ == rhs.i_; }
