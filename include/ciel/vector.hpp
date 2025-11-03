@@ -24,6 +24,8 @@ namespace ciel {
 
 // ==================== unreachable ====================
 
+#ifndef CIEL_UNREACHABLE
+#define CIEL_UNREACHABLE
 [[noreturn]] inline void unreachable() {
 #if defined(__GNUC__) || __has_builtin(__builtin_unreachable)
   __builtin_unreachable();
@@ -31,13 +33,16 @@ namespace ciel {
   __assume(false);
 #endif
 }
+#endif
 
 // ==================== CIEL_THROW_EXCEPTION ====================
 
+#ifndef CIEL_THROW_EXCEPTION
 #ifdef __cpp_exceptions
 #define CIEL_THROW_EXCEPTION(e) throw e
 #else
 #define CIEL_THROW_EXCEPTION(e) std::terminate()
+#endif
 #endif
 
 // ==================== allocator_traits ====================
@@ -1254,6 +1259,8 @@ constexpr bool operator==(const vector<T, Alloc>& lhs, const vector<T, Alloc>& r
   return lhs.size() == rhs.size() && std::equal(lhs.begin(), lhs.end(), rhs.begin());
 }
 
+#ifndef CIEL_SYNTH_THREE_WAY
+#define CIEL_SYNTH_THREE_WAY
 template <class T>
 concept boolean_testable_impl = std::convertible_to<T, bool>;
 
@@ -1279,6 +1286,7 @@ inline constexpr auto synth_three_way = []<class T, class U>(const T& t, const U
 
 template <class T, class U = T>
 using synth_three_way_result = decltype(ciel::synth_three_way(std::declval<T&>(), std::declval<U&>()));
+#endif
 
 template <class T, class Alloc>
 constexpr synth_three_way_result<T> operator<=>(const vector<T, Alloc>& lhs, const vector<T, Alloc>& rhs) {
