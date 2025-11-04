@@ -15,6 +15,7 @@
 // Inspired by LLVM libc++ and folly's implementation.
 
 namespace ciel {
+inline namespace v {
 
 // ==================== __has_builtin ====================
 
@@ -24,8 +25,6 @@ namespace ciel {
 
 // ==================== unreachable ====================
 
-#ifndef CIEL_UNREACHABLE
-#define CIEL_UNREACHABLE
 [[noreturn]] inline void unreachable() {
 #if defined(__GNUC__) || __has_builtin(__builtin_unreachable)
   __builtin_unreachable();
@@ -33,7 +32,6 @@ namespace ciel {
   __assume(false);
 #endif
 }
-#endif
 
 // ==================== CIEL_THROW_EXCEPTION ====================
 
@@ -259,7 +257,7 @@ class split_buffer {
 
   template <std::forward_iterator Iter>
   constexpr void construct_at_end(Iter first, Iter last) {
-    ciel::uninitialized_copy(allocator_ref_, first, last, end_);
+    ciel::v::uninitialized_copy(allocator_ref_, first, last, end_);
   }
 
   template <class... Args>
@@ -365,7 +363,7 @@ class vector {
  public:
   static constexpr bool expand_via_memcpy =
       is_trivially_relocatable_v<value_type> &&
-      via_trivial_construct<decltype(ciel::move_if_noexcept(*std::declval<pointer>()))> && via_trivial_destroy;
+      via_trivial_construct<decltype(ciel::v::move_if_noexcept(*std::declval<pointer>()))> && via_trivial_destroy;
   static constexpr bool move_via_memmove = is_trivially_relocatable_v<value_type> &&
                                            via_trivial_construct<decltype(std::move(*std::declval<pointer>()))> &&
                                            via_trivial_destroy;
@@ -463,7 +461,7 @@ class vector {
 
   template <std::forward_iterator Iter>
   constexpr void construct_at_end(Iter first, Iter last) {
-    ciel::uninitialized_copy(alloc_, first, last, end_);
+    ciel::v::uninitialized_copy(alloc_, first, last, end_);
   }
 
   constexpr void set_nullptr() noexcept {
@@ -509,7 +507,7 @@ class vector {
       } else {
         for (pointer p = end_; p != begin_;) {
           --p;
-          sb.unchecked_emplace_front(ciel::move_if_noexcept(*p));
+          sb.unchecked_emplace_front(ciel::v::move_if_noexcept(*p));
         }
 
         clear();
@@ -546,11 +544,11 @@ class vector {
       } else {
         for (pointer p = pos; p != begin_;) {
           --p;
-          sb.unchecked_emplace_front(ciel::move_if_noexcept(*p));
+          sb.unchecked_emplace_front(ciel::v::move_if_noexcept(*p));
         }
 
         for (pointer p = pos; p != end_; ++p) {
-          sb.unchecked_emplace_back(ciel::move_if_noexcept(*p));
+          sb.unchecked_emplace_back(ciel::v::move_if_noexcept(*p));
         }
 
         clear();
@@ -1259,8 +1257,6 @@ constexpr bool operator==(const vector<T, Alloc>& lhs, const vector<T, Alloc>& r
   return lhs.size() == rhs.size() && std::equal(lhs.begin(), lhs.end(), rhs.begin());
 }
 
-#ifndef CIEL_SYNTH_THREE_WAY
-#define CIEL_SYNTH_THREE_WAY
 template <class T>
 concept boolean_testable_impl = std::convertible_to<T, bool>;
 
@@ -1285,12 +1281,12 @@ inline constexpr auto synth_three_way = []<class T, class U>(const T& t, const U
 };
 
 template <class T, class U = T>
-using synth_three_way_result = decltype(ciel::synth_three_way(std::declval<T&>(), std::declval<U&>()));
-#endif
+using synth_three_way_result = decltype(ciel::v::synth_three_way(std::declval<T&>(), std::declval<U&>()));
 
 template <class T, class Alloc>
-constexpr synth_three_way_result<T> operator<=>(const vector<T, Alloc>& lhs, const vector<T, Alloc>& rhs) {
-  return std::lexicographical_compare_three_way(lhs.begin(), lhs.end(), rhs.begin(), rhs.end(), ciel::synth_three_way);
+constexpr ciel::v::synth_three_way_result<T> operator<=>(const vector<T, Alloc>& lhs, const vector<T, Alloc>& rhs) {
+  return std::lexicographical_compare_three_way(lhs.begin(), lhs.end(), rhs.begin(), rhs.end(),
+                                                ciel::v::synth_three_way);
 }
 
 template <class Iter, class Alloc = std::allocator<typename std::iterator_traits<Iter>::value_type>>
@@ -1298,6 +1294,7 @@ vector(Iter, Iter, Alloc = Alloc()) -> vector<typename std::iterator_traits<Iter
 template <class T>
 vector(size_t, const T&) -> vector<T>;
 
+}  // namespace v
 }  // namespace ciel
 
 namespace std {
